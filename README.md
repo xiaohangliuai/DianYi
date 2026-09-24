@@ -43,5 +43,7 @@ PYTHONPATH=src python3 -m dianyi --install-model
 
 Then double-click an English word. If its application exposes a fresh AT-SPI
 text selection, DianYi displays its local dictionary entry near the pointer.
+Select a phrase or sentence and press `Super+T` to translate it offline; a
+loading state appears immediately while Argos works on its background thread.
 Click elsewhere to close the popup; press `Ctrl+C` in the launching terminal
 to stop the service. No selected text is logged or persisted.

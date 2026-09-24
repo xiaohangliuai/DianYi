@@ -74,7 +74,8 @@ class CapturePopup:
 
         gi.require_version("Gdk", "3.0")
         gi.require_version("Gtk", "3.0")
-        from gi.repository import Gdk, Gtk
+        gi.require_version("Pango", "1.0")
+        from gi.repository import Gdk, Gtk, Pango
 
         self._gdk = Gdk
         self._gtk = Gtk
@@ -98,17 +99,28 @@ class CapturePopup:
         content.set_margin_bottom(10)
 
         self._title = Gtk.Label(xalign=0)
+        self._title.set_line_wrap(True)
+        self._title.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        self._title.set_max_width_chars(46)
         self._title.get_style_context().add_class("title")
         self._details = Gtk.Label(xalign=0)
         self._details.get_style_context().add_class("dim-label")
         self._meanings = Gtk.Label(xalign=0)
         self._meanings.set_line_wrap(True)
-        self._meanings.set_line_wrap_mode(2)
+        self._meanings.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         self._meanings.set_max_width_chars(46)
         self._meanings.set_selectable(False)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_shadow_type(Gtk.ShadowType.NONE)
+        scroller.set_min_content_width(260)
+        scroller.set_max_content_height(320)
+        scroller.set_propagate_natural_height(True)
+        scroller.add(self._meanings)
         content.pack_start(self._title, False, False, 0)
         content.pack_start(self._details, False, False, 0)
-        content.pack_start(self._meanings, False, False, 0)
+        content.pack_start(scroller, True, True, 0)
         frame.add(content)
         self._window.add(frame)
 
@@ -132,6 +144,44 @@ class CapturePopup:
         """Show a non-sensitive setup or lookup status beside the pointer."""
         self._show_content(
             DictionaryPopupContent(title=title, details="", meanings=message),
+            pointer_x,
+            pointer_y,
+        )
+
+    def show_translation(
+        self,
+        source_text: str,
+        translated_text: str,
+        pointer_x: int,
+        pointer_y: int,
+        *,
+        fallback: bool = False,
+    ) -> None:
+        """Show a completed offline sentence translation."""
+        details = "Offline translation fallback" if fallback else "Offline translation"
+        self._show_content(
+            DictionaryPopupContent(
+                title=source_text,
+                details=details,
+                meanings=translated_text,
+            ),
+            pointer_x,
+            pointer_y,
+        )
+
+    def show_translation_loading(
+        self,
+        source_text: str,
+        pointer_x: int,
+        pointer_y: int,
+    ) -> None:
+        """Show immediate feedback while the worker loads or translates."""
+        self._show_content(
+            DictionaryPopupContent(
+                title=source_text,
+                details="Offline translation",
+                meanings="Translating\u2026",
+            ),
             pointer_x,
             pointer_y,
         )
