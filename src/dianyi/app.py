@@ -32,6 +32,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="check system dependencies and exit",
     )
+    parser.add_argument(
+        "--capture",
+        action="store_true",
+        help="run the interactive X11 capture prototype",
+    )
     return parser
 
 
@@ -45,6 +50,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.check:
         print("DianYi system dependencies are available.")
         return 0
-    print("DianYi capture service is not enabled yet. Run with --check for now.")
-    return 0
+    if args.capture:
+        from dianyi.service import run_capture_service
 
+        return run_capture_service()
+    print("Run DianYi with --capture, or use --check to verify dependencies.")
+    return 0

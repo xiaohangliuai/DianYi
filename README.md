@@ -21,4 +21,13 @@ Run the unit tests with:
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-The interactive capture service will be enabled in a later milestone.
+Run the capture-only prototype from an Ubuntu X11 session with:
+
+```bash
+PYTHONPATH=src python3 -m dianyi --capture
+```
+
+Double-click an English word. If its application exposes a fresh AT-SPI text
+selection, DianYi displays the captured word near the pointer. This milestone
+does not perform a dictionary lookup yet. Click elsewhere to close the popup;
+press `Ctrl+C` in the launching terminal to stop the service.
