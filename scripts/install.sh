@@ -24,18 +24,13 @@ for module in gi Xlib; do
 done
 
 mkdir -p "$runtime_root" "$install_prefix/bin" "$(dirname -- "$autostart_path")"
-python3 -m venv --system-site-packages "$venv_path"
+python3 -m venv --clear --system-site-packages "$venv_path"
 
-install_target="$project_root"
-if [[ ${DIANYI_SKIP_TRANSLATION_RUNTIME:-0} != 1 ]]; then
-    install_target="$project_root[translation]"
-fi
-"$venv_path/bin/python" -m pip install --disable-pip-version-check --upgrade "$install_target"
+"$venv_path/bin/python" -m pip install --disable-pip-version-check --upgrade "$project_root"
 ln -sfn "$venv_path/bin/dianyi" "$launcher_path"
 
 if [[ ${DIANYI_SKIP_DOWNLOADS:-0} != 1 ]]; then
     "$launcher_path" --install-dictionary
-    "$launcher_path" --install-model
 fi
 
 escaped_launcher=${launcher_path//\\/\\\\}
@@ -46,7 +41,7 @@ trap 'rm -f -- "$desktop_temporary"' EXIT
     printf '%s\n' '[Desktop Entry]'
     printf '%s\n' 'Type=Application'
     printf '%s\n' 'Name=DianYi'
-    printf '%s\n' 'Comment=Offline English-to-Chinese selection translator'
+    printf '%s\n' 'Comment=Offline English-to-Chinese word lookup'
     printf 'Exec="%s" --capture\n' "$escaped_launcher"
     printf '%s\n' 'Terminal=false'
     printf '%s\n' 'OnlyShowIn=GNOME;'

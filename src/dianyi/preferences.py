@@ -9,8 +9,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from dianyi.capture.shortcut import DEFAULT_SHORTCUT, parse_shortcut
-
 
 class PreferencesError(RuntimeError):
     """Raised when a preferences file is malformed or cannot be used."""
@@ -18,7 +16,6 @@ class PreferencesError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class Preferences:
-    shortcut: str = DEFAULT_SHORTCUT
     automatic_word_lookup: bool = True
     blocked_applications: tuple[str, ...] = ()
     paused: bool = False
@@ -33,16 +30,9 @@ def default_preferences_path() -> Path:
 
 def preferences_from_mapping(values: dict[str, Any]) -> Preferences:
     """Validate preferences loaded from JSON and normalize the blocklist."""
-    shortcut = values.get("shortcut", DEFAULT_SHORTCUT)
     automatic = values.get("automatic_word_lookup", True)
     blocked = values.get("blocked_applications", [])
     paused = values.get("paused", False)
-    if not isinstance(shortcut, str):
-        raise PreferencesError("shortcut must be a string")
-    try:
-        shortcut = parse_shortcut(shortcut).label
-    except ValueError as error:
-        raise PreferencesError(str(error)) from error
     if not isinstance(automatic, bool):
         raise PreferencesError("automatic_word_lookup must be a boolean")
     if not isinstance(paused, bool):
@@ -60,7 +50,6 @@ def preferences_from_mapping(values: dict[str, Any]) -> Preferences:
         }:
             normalized_blocklist.append(application)
     return Preferences(
-        shortcut=shortcut,
         automatic_word_lookup=automatic,
         blocked_applications=tuple(normalized_blocklist),
         paused=paused,
@@ -129,4 +118,3 @@ class PreferencesStore:
         except BaseException:
             temporary_path.unlink(missing_ok=True)
             raise
-

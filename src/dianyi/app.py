@@ -1,4 +1,4 @@
-"""Command-line entry point for the DianYi prototype."""
+"""Command-line entry point for DianYi."""
 
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ def missing_system_modules() -> list[str]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the prototype command-line parser."""
+    """Build the command-line parser."""
     parser = argparse.ArgumentParser(
         prog="dianyi",
-        description="Offline English-to-Chinese selection translator",
+        description="Offline English-to-Chinese word lookup",
     )
     parser.add_argument(
         "--check",
@@ -35,23 +35,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--capture",
         action="store_true",
-        help="run the interactive X11 capture prototype",
+        help="run the interactive X11 word-lookup service",
     )
     parser.add_argument(
         "--install-dictionary",
         action="store_true",
         help="download, verify, and install the pinned ECDICT release",
     )
-    parser.add_argument(
-        "--install-model",
-        action="store_true",
-        help="download, verify, and install the pinned Argos en-to-zh model",
-    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run a dependency check while the capture service is under construction."""
+    """Run DianYi or one of its setup commands."""
     args = build_parser().parse_args(argv)
     missing = missing_system_modules()
     if missing:
@@ -72,13 +67,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"Installed {result.stats.entries} dictionary entries and "
             f"{result.stats.inflections} inflections at {result.database_path}"
         )
-        return 0
-    if args.install_model:
-        from dianyi.model_install import install_translation_model
-
-        result = install_translation_model()
-        state = "Already installed" if result.already_installed else "Installed"
-        print(f"{state} Argos en-to-zh model {result.version}")
         return 0
     print("Run DianYi with --capture, or use --check to verify dependencies.")
     return 0

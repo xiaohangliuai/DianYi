@@ -9,15 +9,13 @@ from dianyi.preferences import Preferences, preferences_from_mapping
 
 
 def preferences_from_controls(
-    shortcut: str,
     automatic_word_lookup: bool,
     blocked_applications_text: str,
     paused: bool,
 ) -> Preferences:
-    """Validate dialog values through the same persisted-settings boundary."""
+    """Validate dialog values through the persisted-settings boundary."""
     return preferences_from_mapping(
         {
-            "shortcut": shortcut,
             "automatic_word_lookup": automatic_word_lookup,
             "blocked_applications": blocked_applications_text.splitlines(),
             "paused": paused,
@@ -47,20 +45,27 @@ class PreferencesDialog:
         grid.set_margin_top(16)
         grid.set_margin_bottom(16)
 
-        shortcut = Gtk.Entry()
-        shortcut.set_text(current.shortcut)
-        automatic = Gtk.CheckButton(label="Automatically look up double-clicked words")
+        automatic = Gtk.CheckButton(
+            label="Automatically look up double-clicked words"
+        )
         automatic.set_active(current.automatic_word_lookup)
         blocked = Gtk.TextView()
         blocked.set_wrap_mode(Gtk.WrapMode.NONE)
         blocked.set_size_request(320, 120)
         blocked.get_buffer().set_text("\n".join(current.blocked_applications))
 
-        grid.attach(Gtk.Label(label="Sentence shortcut", xalign=0), 0, 0, 1, 1)
-        grid.attach(shortcut, 1, 0, 1, 1)
-        grid.attach(automatic, 0, 1, 2, 1)
-        grid.attach(Gtk.Label(label="Blocked WM_CLASS values (one per line)", xalign=0), 0, 2, 2, 1)
-        grid.attach(blocked, 0, 3, 2, 1)
+        grid.attach(automatic, 0, 0, 2, 1)
+        grid.attach(
+            Gtk.Label(
+                label="Blocked WM_CLASS values (one per line)",
+                xalign=0,
+            ),
+            0,
+            1,
+            2,
+            1,
+        )
+        grid.attach(blocked, 0, 2, 2, 1)
         dialog.get_content_area().add(grid)
         dialog.show_all()
 
@@ -74,7 +79,6 @@ class PreferencesDialog:
                 )
                 try:
                     return preferences_from_controls(
-                        shortcut.get_text(),
                         automatic.get_active(),
                         blocked_text,
                         current.paused,
@@ -150,7 +154,10 @@ class TrayController:
             )
             self._status_icon.set_tooltip_text("DianYi")
             self._status_icon.set_visible(True)
-            self._status_icon.connect("activate", lambda _icon: self._toggle_pause())
+            self._status_icon.connect(
+                "activate",
+                lambda _icon: self._toggle_pause(),
+            )
             self._status_icon.connect("popup-menu", self._show_menu)
 
     def _toggle_pause(self) -> None:
@@ -179,4 +186,3 @@ class TrayController:
             self._status_icon.set_visible(False)
         self._menu.destroy()
         self._indicator = None
-

@@ -30,7 +30,6 @@ class PreferencesTests(unittest.TestCase):
 
     def test_round_trips_valid_preferences_atomically(self) -> None:
         expected = Preferences(
-            shortcut="Ctrl+Shift+X",
             automatic_word_lookup=False,
             blocked_applications=("KeePassXC", "PrivateReader"),
             paused=True,
@@ -49,13 +48,16 @@ class PreferencesTests(unittest.TestCase):
 
         self.assertEqual(result.blocked_applications, ("Firefox", "Secret"))
 
-    def test_rejects_invalid_shortcut_and_types(self) -> None:
-        with self.assertRaises(PreferencesError):
-            preferences_from_mapping({"shortcut": "T"})
+    def test_rejects_invalid_types(self) -> None:
         with self.assertRaises(PreferencesError):
             preferences_from_mapping({"automatic_word_lookup": "yes"})
         with self.assertRaises(PreferencesError):
             preferences_from_mapping({"blocked_applications": "Firefox"})
+
+    def test_ignores_removed_shortcut_setting(self) -> None:
+        result = preferences_from_mapping({"shortcut": "Super+T"})
+
+        self.assertEqual(result, Preferences())
 
     def test_rejects_malformed_file_instead_of_silently_overwriting_it(self) -> None:
         self.path.parent.mkdir(parents=True)
@@ -74,7 +76,6 @@ class PreferencesTests(unittest.TestCase):
         self.assertEqual(
             set(values),
             {
-                "shortcut",
                 "automatic_word_lookup",
                 "blocked_applications",
                 "paused",

@@ -1,4 +1,4 @@
-"""Small, non-focus-stealing GTK popup for capture-prototype results."""
+"""Small, non-focus-stealing GTK popup for dictionary results."""
 
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ def place_popup(
 
 
 class CapturePopup:
-    """Display captured text without taking focus or changing the selection."""
+    """Display dictionary content without taking focus."""
 
     def __init__(self) -> None:
         import gi
@@ -144,44 +144,6 @@ class CapturePopup:
         """Show a non-sensitive setup or lookup status beside the pointer."""
         self._show_content(
             DictionaryPopupContent(title=title, details="", meanings=message),
-            pointer_x,
-            pointer_y,
-        )
-
-    def show_translation(
-        self,
-        source_text: str,
-        translated_text: str,
-        pointer_x: int,
-        pointer_y: int,
-        *,
-        fallback: bool = False,
-    ) -> None:
-        """Show a completed offline sentence translation."""
-        details = "Offline translation fallback" if fallback else "Offline translation"
-        self._show_content(
-            DictionaryPopupContent(
-                title=source_text,
-                details=details,
-                meanings=translated_text,
-            ),
-            pointer_x,
-            pointer_y,
-        )
-
-    def show_translation_loading(
-        self,
-        source_text: str,
-        pointer_x: int,
-        pointer_y: int,
-    ) -> None:
-        """Show immediate feedback while the worker loads or translates."""
-        self._show_content(
-            DictionaryPopupContent(
-                title=source_text,
-                details="Offline translation",
-                meanings="Translating\u2026",
-            ),
             pointer_x,
             pointer_y,
         )

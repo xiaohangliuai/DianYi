@@ -19,7 +19,6 @@ if [[ ${1:-} == --purge ]]; then
         "$cache_home/dianyi"
     printf '%s\n' 'DianYi and its local data were removed.'
 else
-    printf '%s\n' 'DianYi was removed; dictionary, model, cache, and preferences were preserved.'
+    printf '%s\n' 'DianYi was removed; dictionary, cache, and preferences were preserved.'
     printf '%s\n' 'Run this script with --purge to remove those local data files too.'
 fi
-
