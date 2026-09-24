@@ -82,3 +82,7 @@ class CaptureCoordinator:
         self._generation += 1
         self._selections.clear()
 
+    def set_blocklist(self, blocklist: frozenset[str]) -> None:
+        """Apply a validated application blocklist on the main thread."""
+        self._blocklist = blocklist
+        self.clear()

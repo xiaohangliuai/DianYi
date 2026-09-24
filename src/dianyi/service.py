@@ -6,6 +6,7 @@ import os
 import signal
 import sys
 import time
+from dataclasses import replace
 from typing import Any
 
 from dianyi.capture.atspi import AtspiSelectionWatcher
@@ -15,6 +16,7 @@ from dianyi.capture.primary import PrimarySelectionReader
 from dianyi.capture.shortcut import X11ShortcutListener
 from dianyi.capture.x11 import X11PointerListener
 from dianyi.desktop_settings import load_input_settings
+from dianyi.controls import PreferencesDialog, TrayController
 from dianyi.dictionary.lookup import DictionaryUnavailableError, lookup_word
 from dianyi.popup import CapturePopup
 from dianyi.preferences import PreferencesStore
@@ -45,7 +47,8 @@ def run_capture_service() -> int:
         raise RuntimeError("GTK could not connect to the X11 display")
 
     settings = load_input_settings()
-    preferences = PreferencesStore().load()
+    preferences_store = PreferencesStore()
+    preferences = preferences_store.load()
     blocklist = frozenset(preferences.blocked_applications)
     popup = CapturePopup()
     primary_selection = PrimarySelectionReader()
@@ -199,6 +202,42 @@ def run_capture_service() -> int:
         queue_runtime_error,
     )
 
+    def set_paused(paused: bool) -> None:
+        nonlocal preferences, latest_accessible_selection
+        preferences = replace(preferences, paused=paused)
+        preferences_store.save(preferences)
+        if paused:
+            latest_accessible_selection = None
+            coordinator.clear()
+            translator.cancel()
+            popup.hide()
+
+    def show_preferences() -> None:
+        nonlocal preferences, blocklist
+        updated = PreferencesDialog().run(preferences)
+        if updated is None:
+            return
+        shortcut_changed = updated.shortcut != preferences.shortcut
+        preferences = updated
+        blocklist = frozenset(updated.blocked_applications)
+        preferences_store.save(updated)
+        coordinator.set_blocklist(blocklist)
+        if shortcut_changed:
+            x, y = pointer_position()
+            popup.show_status(
+                "Preferences saved",
+                "Restart DianYi to activate the new shortcut.",
+                x,
+                y,
+            )
+
+    tray = TrayController(
+        paused=preferences.paused,
+        on_pause_changed=set_paused,
+        on_preferences=show_preferences,
+        on_quit=Gtk.main_quit,
+    )
+
     def request_shutdown() -> bool:
         Gtk.main_quit()
         return GLib.SOURCE_REMOVE
@@ -214,6 +253,7 @@ def run_capture_service() -> int:
     finally:
         coordinator.clear()
         translator.close()
+        tray.destroy()
         shortcut_listener.stop()
         pointer_listener.stop()
         selection_watcher.stop()
