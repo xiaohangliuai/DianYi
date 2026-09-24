@@ -37,7 +37,7 @@ class DictionarySchemaTests(unittest.TestCase):
             }
             version = connection.execute("PRAGMA user_version").fetchone()[0]
 
-        self.assertEqual(tables, {"entries", "inflections"})
+        self.assertEqual(tables, {"entries", "inflections", "metadata"})
         self.assertIn("inflections_by_form", indexes)
         self.assertEqual(version, SCHEMA_VERSION)
 
@@ -51,6 +51,21 @@ class DictionarySchemaTests(unittest.TestCase):
             connection.execute("PRAGMA user_version = 99")
             with self.assertRaisesRegex(RuntimeError, "unsupported"):
                 initialize_database(connection)
+
+    def test_migrates_version_one_database(self) -> None:
+        with sqlite3.connect(self.database_path) as connection:
+            connection.execute("CREATE TABLE entries(word TEXT PRIMARY KEY)")
+            connection.execute("PRAGMA user_version = 1")
+            initialize_database(connection)
+
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            metadata_exists = connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'metadata'"
+            ).fetchone()
+
+        self.assertEqual(version, SCHEMA_VERSION)
+        self.assertIsNotNone(metadata_exists)
 
     def test_enforces_inflection_foreign_keys(self) -> None:
         with connect_database(self.database_path) as connection:

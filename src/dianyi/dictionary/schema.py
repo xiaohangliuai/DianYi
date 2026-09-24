@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
@@ -28,10 +28,23 @@ CREATE TABLE IF NOT EXISTS inflections (
     FOREIGN KEY (headword) REFERENCES entries(word) ON DELETE CASCADE
 ) WITHOUT ROWID;
 
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+) WITHOUT ROWID;
+
 CREATE INDEX IF NOT EXISTS inflections_by_form
 ON inflections(form COLLATE NOCASE, priority, headword);
 
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
+"""
+
+MIGRATE_V1_TO_V2_SQL = """
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+) WITHOUT ROWID;
+PRAGMA user_version = 2;
 """
 
 
@@ -58,9 +71,11 @@ def connect_database(
 def initialize_database(connection: sqlite3.Connection) -> None:
     """Create or validate the current dictionary schema."""
     current_version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if current_version == 1:
+        connection.executescript(MIGRATE_V1_TO_V2_SQL)
+        return
     if current_version not in (0, SCHEMA_VERSION):
         raise RuntimeError(
             f"unsupported dictionary schema version: {current_version}"
         )
     connection.executescript(SCHEMA_SQL)
-
