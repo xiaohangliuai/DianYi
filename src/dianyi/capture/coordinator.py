@@ -51,7 +51,7 @@ class CaptureCoordinator:
 
     def handle_pointer_event(self, event: PointerEvent) -> None:
         """Process one main-thread pointer event and schedule completed gestures."""
-        if event.action is PointerAction.PRESS and event.button == 1:
+        if event.action is PointerAction.PRESS:
             self._on_dismiss()
 
         gesture = self._detector.feed(event)

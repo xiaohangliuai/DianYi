@@ -66,6 +66,21 @@ class CaptureCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(self.dismissals, 2)
 
+    def test_dismisses_on_other_pointer_buttons(self) -> None:
+        event = pointer(PointerAction.PRESS, 1_000)
+        event = PointerEvent(
+            action=event.action,
+            button=3,
+            x=event.x,
+            y=event.y,
+            timestamp_ms=event.timestamp_ms,
+            monotonic_s=event.monotonic_s,
+        )
+
+        self.coordinator.handle_pointer_event(event)
+
+        self.assertEqual(self.dismissals, 1)
+
     def test_does_not_publish_stale_selection(self) -> None:
         self.coordinator.record_selection(SelectionContext("stale", 0.5))
         self.double_click()

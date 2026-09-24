@@ -7,7 +7,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from Xlib import X, display, error, protocol
+from Xlib import X, XK, display, error, protocol
 from Xlib.ext import record
 
 from dianyi.capture.gesture import PointerAction, PointerEvent
@@ -46,9 +46,11 @@ class X11PointerListener:
         self,
         on_event: Callable[[PointerEvent], None],
         on_error: Callable[[Exception], None] | None = None,
+        on_escape: Callable[[], None] | None = None,
     ) -> None:
         self._on_event = on_event
         self._on_error = on_error or (lambda _error: None)
+        self._on_escape = on_escape or (lambda: None)
         self._thread: threading.Thread | None = None
         self._control_display: display.Display | None = None
         self._record_display: display.Display | None = None
@@ -56,6 +58,7 @@ class X11PointerListener:
         self._started = threading.Event()
         self._startup_error: Exception | None = None
         self._display_lock = threading.Lock()
+        self._escape_keycode = 0
 
     def start(self, timeout_s: float = 2.0) -> None:
         """Start capture in a daemon thread and wait for initialization."""
@@ -101,6 +104,9 @@ class X11PointerListener:
             self._record_display = display.Display()
             if not self._record_display.has_extension("RECORD"):
                 raise X11UnavailableError("X11 RECORD extension is unavailable")
+            self._escape_keycode = self._record_display.keysym_to_keycode(
+                XK.string_to_keysym("Escape")
+            )
             self._context = self._record_display.record_create_context(
                 0,
                 [record.AllClients],
@@ -109,7 +115,7 @@ class X11PointerListener:
                   "ext_requests": (0, 0, 0, 0),
                   "ext_replies": (0, 0, 0, 0),
                   "delivered_events": (0, 0),
-                  "device_events": (X.ButtonPress, X.ButtonRelease),
+                  "device_events": (X.KeyPress, X.ButtonRelease),
                   "errors": (0, 0),
                   "client_started": False,
                   "client_died": False}],
@@ -152,6 +158,8 @@ class X11PointerListener:
             pointer_event = pointer_event_from_xevent(event, time.monotonic())
             if pointer_event is not None:
                 self._on_event(pointer_event)
+            elif event.type == X.KeyPress and event.detail == self._escape_keycode:
+                self._on_escape()
 
     def _close_displays(self) -> None:
         """Free the RECORD context and both display connections."""

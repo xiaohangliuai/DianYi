@@ -183,6 +183,9 @@ def run_capture_service() -> int:
             return
         GLib.idle_add(coordinator.handle_pointer_event, event)
 
+    def queue_escape() -> None:
+        GLib.idle_add(dismiss)
+
     def queue_runtime_error(failure: Exception) -> None:
         def report_and_quit() -> bool:
             print(
@@ -195,7 +198,11 @@ def run_capture_service() -> int:
         GLib.idle_add(report_and_quit)
 
     selection_watcher = AtspiSelectionWatcher(record_selection)
-    pointer_listener = X11PointerListener(queue_pointer, queue_runtime_error)
+    pointer_listener = X11PointerListener(
+        queue_pointer,
+        queue_runtime_error,
+        queue_escape,
+    )
     shortcut_listener = X11ShortcutListener(
         preferences.shortcut,
         queue_shortcut,
