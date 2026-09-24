@@ -37,6 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="run the interactive X11 capture prototype",
     )
+    parser.add_argument(
+        "--install-dictionary",
+        action="store_true",
+        help="download, verify, and install the pinned ECDICT release",
+    )
     return parser
 
 
@@ -54,5 +59,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         from dianyi.service import run_capture_service
 
         return run_capture_service()
+    if args.install_dictionary:
+        from dianyi.dictionary.install import install_dictionary
+
+        result = install_dictionary()
+        print(
+            f"Installed {result.stats.entries} dictionary entries and "
+            f"{result.stats.inflections} inflections at {result.database_path}"
+        )
+        return 0
     print("Run DianYi with --capture, or use --check to verify dependencies.")
     return 0

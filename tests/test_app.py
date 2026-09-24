@@ -38,6 +38,24 @@ class AppTests(unittest.TestCase):
         self.assertEqual(result, 7)
         run_capture.assert_called_once_with()
 
+    def test_dictionary_install_runs_installer(self) -> None:
+        fake_result = mock.Mock()
+        fake_result.stats.entries = 10
+        fake_result.stats.inflections = 5
+        fake_result.database_path = "/tmp/dictionary.db"
+        output = io.StringIO()
+        with mock.patch.object(app, "missing_system_modules", return_value=[]):
+            with mock.patch(
+                "dianyi.dictionary.install.install_dictionary",
+                return_value=fake_result,
+            ) as install:
+                with contextlib.redirect_stdout(output):
+                    result = app.main(["--install-dictionary"])
+
+        self.assertEqual(result, 0)
+        self.assertIn("10 dictionary entries", output.getvalue())
+        install.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()
