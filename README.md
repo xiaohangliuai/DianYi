@@ -27,7 +27,13 @@ Run the capture-only prototype from an Ubuntu X11 session with:
 PYTHONPATH=src python3 -m dianyi --capture
 ```
 
-Double-click an English word. If its application exposes a fresh AT-SPI text
-selection, DianYi displays the captured word near the pointer. This milestone
-does not perform a dictionary lookup yet. Click elsewhere to close the popup;
-press `Ctrl+C` in the launching terminal to stop the service.
+Install the pinned, checksum-verified ECDICT release once:
+
+```bash
+PYTHONPATH=src python3 -m dianyi --install-dictionary
+```
+
+Then double-click an English word. If its application exposes a fresh AT-SPI
+text selection, DianYi displays its local dictionary entry near the pointer.
+Click elsewhere to close the popup; press `Ctrl+C` in the launching terminal
+to stop the service. No selected text is logged or persisted.

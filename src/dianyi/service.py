@@ -12,6 +12,7 @@ from dianyi.capture.coordinator import CaptureCoordinator
 from dianyi.capture.gesture import DoubleClickDetector, PointerEvent
 from dianyi.capture.x11 import X11PointerListener
 from dianyi.desktop_settings import load_input_settings
+from dianyi.dictionary.lookup import DictionaryUnavailableError, lookup_word
 from dianyi.popup import CapturePopup
 
 
@@ -39,6 +40,27 @@ def run_capture_service() -> int:
     settings = load_input_settings()
     popup = CapturePopup()
 
+    def show_lookup(word: str, pointer_x: int, pointer_y: int) -> None:
+        try:
+            entry = lookup_word(word)
+        except DictionaryUnavailableError:
+            popup.show_status(
+                word,
+                "Dictionary not installed. Run: dianyi --install-dictionary",
+                pointer_x,
+                pointer_y,
+            )
+            return
+        if entry is None:
+            popup.show_status(
+                word,
+                "No dictionary entry. Sentence fallback is not installed yet.",
+                pointer_x,
+                pointer_y,
+            )
+            return
+        popup.show_entry(entry, pointer_x, pointer_y)
+
     def schedule(milliseconds: int, callback: Any) -> None:
         def run_once() -> bool:
             callback()
@@ -48,7 +70,7 @@ def run_capture_service() -> int:
 
     coordinator = CaptureCoordinator(
         DoubleClickDetector(settings.double_click_ms, settings.movement_px),
-        popup.show_word,
+        show_lookup,
         schedule,
         on_dismiss=popup.hide,
     )
@@ -87,4 +109,3 @@ def run_capture_service() -> int:
         selection_watcher.stop()
         popup.destroy()
     return 0
-

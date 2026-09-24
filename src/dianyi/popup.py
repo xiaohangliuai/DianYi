@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from dianyi.dictionary.lookup import DictionaryEntry
+
 
 @dataclass(frozen=True, slots=True)
 class Rectangle:
@@ -11,6 +13,29 @@ class Rectangle:
     y: int
     width: int
     height: int
+
+
+@dataclass(frozen=True, slots=True)
+class DictionaryPopupContent:
+    title: str
+    details: str
+    meanings: str
+
+
+def format_dictionary_entry(entry: DictionaryEntry) -> DictionaryPopupContent:
+    """Format structured dictionary data without GTK markup or HTML."""
+    details: list[str] = []
+    if entry.normalized:
+        details.append(f"\u2192 {entry.headword}")
+    if entry.phonetic:
+        details.append(f"/{entry.phonetic.strip('/[]')}/")
+    if entry.parts_of_speech:
+        details.append(" \u00b7 ".join(entry.parts_of_speech))
+    return DictionaryPopupContent(
+        title=entry.selected_text,
+        details="  ".join(details),
+        meanings="\n".join(entry.meanings),
+    )
 
 
 def place_popup(
@@ -66,20 +91,64 @@ class CapturePopup:
 
         frame = Gtk.Frame()
         frame.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
-        self._label = Gtk.Label(xalign=0)
-        self._label.set_line_wrap(True)
-        self._label.set_max_width_chars(36)
-        self._label.set_margin_start(14)
-        self._label.set_margin_end(14)
-        self._label.set_margin_top(10)
-        self._label.set_margin_bottom(10)
-        frame.add(self._label)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        content.set_margin_start(14)
+        content.set_margin_end(14)
+        content.set_margin_top(10)
+        content.set_margin_bottom(10)
+
+        self._title = Gtk.Label(xalign=0)
+        self._title.get_style_context().add_class("title")
+        self._details = Gtk.Label(xalign=0)
+        self._details.get_style_context().add_class("dim-label")
+        self._meanings = Gtk.Label(xalign=0)
+        self._meanings.set_line_wrap(True)
+        self._meanings.set_line_wrap_mode(2)
+        self._meanings.set_max_width_chars(46)
+        self._meanings.set_selectable(False)
+        content.pack_start(self._title, False, False, 0)
+        content.pack_start(self._details, False, False, 0)
+        content.pack_start(self._meanings, False, False, 0)
+        frame.add(content)
         self._window.add(frame)
 
-    def show_word(self, word: str, pointer_x: int, pointer_y: int) -> None:
-        """Show one captured word beside the pointer on its active monitor."""
-        self._label.set_text(word)
+    def show_entry(
+        self,
+        entry: DictionaryEntry,
+        pointer_x: int,
+        pointer_y: int,
+    ) -> None:
+        """Show a structured dictionary result beside the pointer."""
+        content = format_dictionary_entry(entry)
+        self._show_content(content, pointer_x, pointer_y)
+
+    def show_status(
+        self,
+        title: str,
+        message: str,
+        pointer_x: int,
+        pointer_y: int,
+    ) -> None:
+        """Show a non-sensitive setup or lookup status beside the pointer."""
+        self._show_content(
+            DictionaryPopupContent(title=title, details="", meanings=message),
+            pointer_x,
+            pointer_y,
+        )
+
+    def _show_content(
+        self,
+        content: DictionaryPopupContent,
+        pointer_x: int,
+        pointer_y: int,
+    ) -> None:
+        """Populate, position, and reveal the shared popup window."""
+        self._title.set_text(content.title)
+        self._details.set_text(content.details)
+        self._details.set_visible(bool(content.details))
+        self._meanings.set_text(content.meanings)
         self._window.show_all()
+        self._details.set_visible(bool(content.details))
         _minimum, natural = self._window.get_preferred_size()
 
         display = self._gdk.Display.get_default()
@@ -105,10 +174,11 @@ class CapturePopup:
     def hide(self) -> None:
         """Hide the popup and its selected-text content."""
         self._window.hide()
-        self._label.set_text("")
+        self._title.set_text("")
+        self._details.set_text("")
+        self._meanings.set_text("")
 
     def destroy(self) -> None:
         """Destroy the popup and release its GTK resources."""
         self.hide()
         self._window.destroy()
-

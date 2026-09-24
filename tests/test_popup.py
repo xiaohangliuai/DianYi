@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from dianyi.popup import Rectangle, place_popup
+from dianyi.dictionary.lookup import DictionaryEntry
+from dianyi.popup import Rectangle, format_dictionary_entry, place_popup
 
 
 MONITOR = Rectangle(x=100, y=50, width=1_000, height=700)
@@ -30,6 +31,49 @@ class PopupPlacementTests(unittest.TestCase):
         result = place_popup(-20, 500, 300, 100, monitor)
 
         self.assertEqual(result, (-334, 514))
+
+
+class DictionaryPopupFormattingTests(unittest.TestCase):
+    def test_formats_full_exact_entry(self) -> None:
+        entry = DictionaryEntry(
+            selected_text="run",
+            headword="run",
+            phonetic="r\u028cn",
+            parts_of_speech=("v", "n"),
+            meanings=("vi. \u8dd1", "vt. \u7ba1\u7406"),
+        )
+
+        content = format_dictionary_entry(entry)
+
+        self.assertEqual(content.title, "run")
+        self.assertEqual(content.details, "/r\u028cn/  v \u00b7 n")
+        self.assertEqual(content.meanings, "vi. \u8dd1\nvt. \u7ba1\u7406")
+
+    def test_shows_normalized_headword(self) -> None:
+        entry = DictionaryEntry(
+            selected_text="children",
+            headword="child",
+            phonetic="",
+            parts_of_speech=(),
+            meanings=("n. \u5b69\u5b50",),
+        )
+
+        content = format_dictionary_entry(entry)
+
+        self.assertEqual(content.details, "\u2192 child")
+
+    def test_does_not_add_empty_detail_separators(self) -> None:
+        entry = DictionaryEntry(
+            selected_text="word",
+            headword="word",
+            phonetic="",
+            parts_of_speech=(),
+            meanings=("n. \u5355\u8bcd",),
+        )
+
+        content = format_dictionary_entry(entry)
+
+        self.assertEqual(content.details, "")
 
 
 if __name__ == "__main__":

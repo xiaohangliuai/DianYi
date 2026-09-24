@@ -55,6 +55,7 @@ class X11PointerListener:
         self._context: int | None = None
         self._started = threading.Event()
         self._startup_error: Exception | None = None
+        self._display_lock = threading.Lock()
 
     def start(self, timeout_s: float = 2.0) -> None:
         """Start capture in a daemon thread and wait for initialization."""
@@ -78,14 +79,15 @@ class X11PointerListener:
 
     def stop(self) -> None:
         """Disable capture, release X11 resources, and join the worker."""
-        control = self._control_display
-        context = self._context
-        if control is not None and context is not None:
-            try:
-                control.record_disable_context(context)
-                control.sync()
-            except (error.XError, OSError):
-                pass
+        with self._display_lock:
+            control = self._control_display
+            context = self._context
+            if control is not None and context is not None:
+                try:
+                    control.record_disable_context(context)
+                    control.sync()
+                except (error.XError, OSError):
+                    pass
 
         thread = self._thread
         if thread is not None and thread is not threading.current_thread():
@@ -153,20 +155,20 @@ class X11PointerListener:
 
     def _close_displays(self) -> None:
         """Free the RECORD context and both display connections."""
-        record_display = self._record_display
-        context = self._context
-        self._context = None
-        if record_display is not None and context is not None:
-            try:
-                record_display.record_free_context(context)
-            except (error.XError, OSError):
-                pass
-        for connection in (record_display, self._control_display):
-            if connection is not None:
+        with self._display_lock:
+            record_display = self._record_display
+            context = self._context
+            self._context = None
+            if record_display is not None and context is not None:
                 try:
-                    connection.close()
-                except OSError:
+                    record_display.record_free_context(context)
+                except (error.XError, OSError):
                     pass
-        self._record_display = None
-        self._control_display = None
-
+            for connection in (record_display, self._control_display):
+                if connection is not None:
+                    try:
+                        connection.close()
+                    except OSError:
+                        pass
+            self._record_display = None
+            self._control_display = None
