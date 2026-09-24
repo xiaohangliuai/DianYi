@@ -42,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="download, verify, and install the pinned ECDICT release",
     )
+    parser.add_argument(
+        "--install-model",
+        action="store_true",
+        help="download, verify, and install the pinned Argos en-to-zh model",
+    )
     return parser
 
 
@@ -67,6 +72,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"Installed {result.stats.entries} dictionary entries and "
             f"{result.stats.inflections} inflections at {result.database_path}"
         )
+        return 0
+    if args.install_model:
+        from dianyi.model_install import install_translation_model
+
+        result = install_translation_model()
+        state = "Already installed" if result.already_installed else "Installed"
+        print(f"{state} Argos en-to-zh model {result.version}")
         return 0
     print("Run DianYi with --capture, or use --check to verify dependencies.")
     return 0

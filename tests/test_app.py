@@ -56,6 +56,21 @@ class AppTests(unittest.TestCase):
         self.assertIn("10 dictionary entries", output.getvalue())
         install.assert_called_once_with()
 
+    def test_model_install_runs_installer(self) -> None:
+        fake_result = mock.Mock(version="1.9", already_installed=False)
+        output = io.StringIO()
+        with mock.patch.object(app, "missing_system_modules", return_value=[]):
+            with mock.patch(
+                "dianyi.model_install.install_translation_model",
+                return_value=fake_result,
+            ) as install:
+                with contextlib.redirect_stdout(output):
+                    result = app.main(["--install-model"])
+
+        self.assertEqual(result, 0)
+        self.assertIn("Installed Argos en-to-zh model 1.9", output.getvalue())
+        install.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

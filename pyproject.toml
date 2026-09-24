@@ -19,9 +19,11 @@ classifiers = [
 [project.scripts]
 dianyi = "dianyi.app:main"
 
+[project.optional-dependencies]
+translation = ["argostranslate==1.11.0"]
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

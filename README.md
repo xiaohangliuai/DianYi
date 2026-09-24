@@ -33,6 +33,14 @@ Install the pinned, checksum-verified ECDICT release once:
 PYTHONPATH=src python3 -m dianyi --install-dictionary
 ```
 
+Sentence translation additionally requires the optional Argos runtime and
+the pinned model:
+
+```bash
+python3 -m pip install '.[translation]'
+PYTHONPATH=src python3 -m dianyi --install-model
+```
+
 Then double-click an English word. If its application exposes a fresh AT-SPI
 text selection, DianYi displays its local dictionary entry near the pointer.
 Click elsewhere to close the popup; press `Ctrl+C` in the launching terminal
