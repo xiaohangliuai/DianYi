@@ -12,11 +12,12 @@ from dianyi.capture.atspi import AtspiSelectionWatcher
 from dianyi.capture.coordinator import CaptureCoordinator
 from dianyi.capture.gesture import DoubleClickDetector, PointerEvent
 from dianyi.capture.primary import PrimarySelectionReader
-from dianyi.capture.shortcut import DEFAULT_SHORTCUT, X11ShortcutListener
+from dianyi.capture.shortcut import X11ShortcutListener
 from dianyi.capture.x11 import X11PointerListener
 from dianyi.desktop_settings import load_input_settings
 from dianyi.dictionary.lookup import DictionaryUnavailableError, lookup_word
 from dianyi.popup import CapturePopup
+from dianyi.preferences import PreferencesStore
 from dianyi.selection import SelectionContext, validate_sentence
 from dianyi.translation import SentenceTranslationController
 
@@ -44,6 +45,8 @@ def run_capture_service() -> int:
         raise RuntimeError("GTK could not connect to the X11 display")
 
     settings = load_input_settings()
+    preferences = PreferencesStore().load()
+    blocklist = frozenset(preferences.blocked_applications)
     popup = CapturePopup()
     primary_selection = PrimarySelectionReader()
 
@@ -123,12 +126,15 @@ def run_capture_service() -> int:
         show_lookup,
         schedule,
         on_dismiss=dismiss,
+        blocklist=blocklist,
     )
 
     latest_accessible_selection: SelectionContext | None = None
 
     def record_selection(selection: SelectionContext) -> None:
         nonlocal latest_accessible_selection
+        if preferences.paused:
+            return
         latest_accessible_selection = selection
         coordinator.record_selection(selection)
 
@@ -144,7 +150,7 @@ def run_capture_service() -> int:
             )
         else:
             context = SelectionContext(text=text, observed_at_s=time.monotonic())
-        validation = validate_sentence(context)
+        validation = validate_sentence(context, blocklist)
         if validation.sentence is None:
             popup.show_status(
                 "Selection not translated",
@@ -156,6 +162,8 @@ def run_capture_service() -> int:
         start_translation(validation.sentence.text, pointer_x, pointer_y)
 
     def request_sentence_translation() -> bool:
+        if preferences.paused:
+            return GLib.SOURCE_REMOVE
         translator.cancel()
         popup.hide()
         pointer_x, pointer_y = pointer_position()
@@ -168,6 +176,8 @@ def run_capture_service() -> int:
         GLib.idle_add(request_sentence_translation)
 
     def queue_pointer(event: PointerEvent) -> None:
+        if preferences.paused or not preferences.automatic_word_lookup:
+            return
         GLib.idle_add(coordinator.handle_pointer_event, event)
 
     def queue_runtime_error(failure: Exception) -> None:
@@ -184,7 +194,7 @@ def run_capture_service() -> int:
     selection_watcher = AtspiSelectionWatcher(record_selection)
     pointer_listener = X11PointerListener(queue_pointer, queue_runtime_error)
     shortcut_listener = X11ShortcutListener(
-        DEFAULT_SHORTCUT,
+        preferences.shortcut,
         queue_shortcut,
         queue_runtime_error,
     )
