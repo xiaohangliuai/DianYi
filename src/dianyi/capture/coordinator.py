@@ -1,0 +1,84 @@
+"""Coordinate pointer gestures with fresh accessibility selections."""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Callable
+
+from dianyi.capture.freshness import FreshSelectionBuffer
+from dianyi.capture.gesture import (
+    DoubleClick,
+    DoubleClickDetector,
+    PointerAction,
+    PointerEvent,
+)
+from dianyi.selection import SelectionContext, validate_automatic_word
+
+
+SettleScheduler = Callable[[int, Callable[[], None]], None]
+WordHandler = Callable[[str, int, int], None]
+
+
+class CaptureCoordinator:
+    """Pair double clicks with only the selection event that they produced."""
+
+    def __init__(
+        self,
+        detector: DoubleClickDetector,
+        on_word: WordHandler,
+        schedule: SettleScheduler,
+        *,
+        on_dismiss: Callable[[], None] = lambda: None,
+        blocklist: frozenset[str] = frozenset(),
+        settle_delay_ms: int = 80,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        if settle_delay_ms < 0:
+            raise ValueError("settle_delay_ms cannot be negative")
+        self._detector = detector
+        self._on_word = on_word
+        self._schedule = schedule
+        self._on_dismiss = on_dismiss
+        self._blocklist = blocklist
+        self._settle_delay_ms = settle_delay_ms
+        self._clock = clock
+        self._selections = FreshSelectionBuffer()
+        self._generation = 0
+
+    def record_selection(self, selection: SelectionContext) -> None:
+        """Record the most recent AT-SPI selection without persisting it."""
+        self._selections.record(selection)
+
+    def handle_pointer_event(self, event: PointerEvent) -> None:
+        """Process one main-thread pointer event and schedule completed gestures."""
+        if event.action is PointerAction.PRESS and event.button == 1:
+            self._on_dismiss()
+
+        gesture = self._detector.feed(event)
+        if gesture is None:
+            return
+
+        self._generation += 1
+        generation = self._generation
+        self._schedule(
+            self._settle_delay_ms,
+            lambda: self._finish_gesture(gesture, generation),
+        )
+
+    def _finish_gesture(self, gesture: DoubleClick, generation: int) -> None:
+        """Validate and publish a gesture's fresh selection after settling."""
+        if generation != self._generation:
+            return
+        selection = self._selections.consume_for(gesture, self._clock())
+        if selection is None:
+            return
+        result = validate_automatic_word(selection, self._blocklist)
+        if result.word is None:
+            return
+        self._on_word(result.word.text, gesture.x, gesture.y)
+
+    def clear(self) -> None:
+        """Invalidate pending work and discard any selected text in memory."""
+        self._generation += 1
+        self._selections.clear()
+
