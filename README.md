@@ -21,6 +21,19 @@ Run the unit tests with:
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
+## Personal installation
+
+Install the application, pinned dictionary, translation runtime/model, and
+GNOME autostart entry under your user account:
+
+```bash
+./scripts/install.sh
+```
+
+No administrator access is required. Remove the runtime while preserving local
+data with `./scripts/uninstall.sh`, or explicitly remove all DianYi data with
+`./scripts/uninstall.sh --purge`.
+
 Run the capture-only prototype from an Ubuntu X11 session with:
 
 ```bash
