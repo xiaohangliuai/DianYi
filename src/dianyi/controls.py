@@ -116,7 +116,7 @@ class TrayController:
         from gi.repository import Gtk
 
         self._gtk = Gtk
-        self._pause_item = Gtk.CheckMenuItem(label="Pause")
+        self._pause_item = Gtk.CheckMenuItem(label="Pause word lookup")
         self._pause_item.set_active(paused)
         self._pause_item.connect(
             "toggled",
@@ -156,13 +156,9 @@ class TrayController:
             self._status_icon.set_visible(True)
             self._status_icon.connect(
                 "activate",
-                lambda _icon: self._toggle_pause(),
+                lambda icon: self._show_menu(icon, 1, Gtk.get_current_event_time()),
             )
             self._status_icon.connect("popup-menu", self._show_menu)
-
-    def _toggle_pause(self) -> None:
-        """Toggle pause from a primary click on the fallback status icon."""
-        self._pause_item.set_active(not self._pause_item.get_active())
 
     def _show_menu(
         self,
