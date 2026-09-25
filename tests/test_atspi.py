@@ -27,6 +27,22 @@ class FakeText:
         return self.text[start:end]
 
 
+class FakeTextInterface:
+    """Model PyGObject's interface-qualified AT-SPI call style."""
+
+    @staticmethod
+    def get_n_selections(text: FakeText) -> int:
+        return len(text.selections)
+
+    @staticmethod
+    def get_selection(text: FakeText, index: int) -> FakeRange:
+        return text.selections[index]
+
+    @staticmethod
+    def get_text(text: FakeText, start: int, end: int) -> str:
+        return text.text[start:end]
+
+
 class FakeApplication:
     def get_name(self) -> str:
         return "Test Browser"
@@ -60,6 +76,17 @@ class AtspiSelectionTests(unittest.TestCase):
         self.assertEqual(result.observed_at_s, 4.2)
         self.assertEqual(result.application_name, "Test Browser")
 
+    def test_supports_interface_qualified_text_calls(self) -> None:
+        source = FakeAccessible(FakeText("hello world", [FakeRange(6, 11)]))
+
+        result = selection_from_accessible(
+            source,
+            4.2,
+            text_interface=FakeTextInterface,
+        )
+
+        self.assertEqual(result.text, "world")
+
     def test_marks_password_roles(self) -> None:
         source = FakeAccessible(
             FakeText("secret", [FakeRange(0, 6)]),
@@ -86,4 +113,3 @@ class AtspiSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

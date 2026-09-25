@@ -22,21 +22,46 @@ def _accessible_name(accessible: Any) -> str:
     return name or ""
 
 
+def _text_call(
+    text_iface: Any,
+    method_name: str,
+    *arguments: Any,
+    text_interface: Any = None,
+) -> Any:
+    """Call an AT-SPI Text method without Accessible method-name collisions."""
+    if text_interface is None:
+        return getattr(text_iface, method_name)(*arguments)
+    return getattr(text_interface, method_name)(text_iface, *arguments)
+
+
 def selection_from_accessible(
     source: Any,
     observed_at_s: float,
     *,
     password_role: Any = None,
+    text_interface: Any = None,
 ) -> SelectionContext:
     """Extract the current selection and safety metadata from an accessible."""
     text = ""
     text_iface = source.get_text_iface()
-    if text_iface is not None and text_iface.get_n_selections() == 1:
-        selected_range = text_iface.get_selection(0)
+    if text_iface is not None and _text_call(
+        text_iface,
+        "get_n_selections",
+        text_interface=text_interface,
+    ) == 1:
+        selected_range = _text_call(
+            text_iface,
+            "get_selection",
+            0,
+            text_interface=text_interface,
+        )
         if selected_range.end_offset > selected_range.start_offset:
-            text = text_iface.get_text(
+            text = _text_call(
+                text_iface,
+                "get_text",
                 selected_range.start_offset,
                 selected_range.end_offset,
+                text_interface=text_interface,
             )
 
     application_name = _accessible_name(source.get_application())
@@ -96,6 +121,7 @@ class AtspiSelectionWatcher:
                 event.source,
                 time.monotonic(),
                 password_role=atspi.Role.PASSWORD_TEXT,
+                text_interface=atspi.Text,
             )
         except Exception as error:
             LOGGER.debug(
@@ -104,4 +130,3 @@ class AtspiSelectionWatcher:
             )
             return
         self._on_selection(context)
-
