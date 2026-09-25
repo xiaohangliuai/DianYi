@@ -38,6 +38,22 @@ def format_dictionary_entry(entry: DictionaryEntry) -> DictionaryPopupContent:
     )
 
 
+def logical_pointer(x: int, y: int, scale: int) -> tuple[int, int]:
+    """Convert X11 device coordinates to GTK logical coordinates."""
+    scale = max(1, scale)
+    return x // scale, y // scale
+
+
+def physical_popup_offsets(
+    monitor: Rectangle, width_mm: int, height_mm: int,
+) -> tuple[int, int]:
+    """Return a 20 mm gap per axis, falling back to 96 DPI if size is unknown."""
+    return (
+        max(1, round(20 * monitor.width / width_mm)) if width_mm > 0 else 76,
+        max(1, round(20 * monitor.height / height_mm)) if height_mm > 0 else 76,
+    )
+
+
 def place_popup(
     pointer_x: int,
     pointer_y: int,
@@ -45,7 +61,8 @@ def place_popup(
     popup_height: int,
     monitor: Rectangle,
     *,
-    offset: int = 28,
+    offset: int = 76,
+    vertical_offset: int | None = None,
     margin: int = 8,
 ) -> tuple[int, int]:
     """Place a popup near the pointer while keeping it inside one monitor."""
@@ -54,12 +71,13 @@ def place_popup(
     max_x = max(min_x, monitor.x + monitor.width - popup_width - margin)
     max_y = max(min_y, monitor.y + monitor.height - popup_height - margin)
 
+    offset_y = offset if vertical_offset is None else vertical_offset
     proposed_x = pointer_x + offset
-    proposed_y = pointer_y + offset
+    proposed_y = pointer_y + offset_y
     if proposed_x > max_x:
         proposed_x = pointer_x - popup_width - offset
     if proposed_y > max_y:
-        proposed_y = pointer_y - popup_height - offset
+        proposed_y = pointer_y - popup_height - offset_y
     return (
         min(max(proposed_x, min_x), max_x),
         min(max(proposed_y, min_y), max_y),
@@ -164,21 +182,25 @@ class CapturePopup:
         _minimum, natural = self._window.get_preferred_size()
 
         display = self._gdk.Display.get_default()
+        pointer_x, pointer_y = logical_pointer(
+            pointer_x, pointer_y, self._window.get_scale_factor()
+        )
         monitor = display.get_monitor_at_point(pointer_x, pointer_y)
         if monitor is None:
             monitor = display.get_primary_monitor()
         geometry = monitor.get_geometry()
+        bounds = Rectangle(geometry.x, geometry.y, geometry.width, geometry.height)
+        offset_x, offset_y = physical_popup_offsets(
+            bounds, monitor.get_width_mm(), monitor.get_height_mm()
+        )
         position = place_popup(
             pointer_x,
             pointer_y,
             natural.width,
             natural.height,
-            Rectangle(
-                geometry.x,
-                geometry.y,
-                geometry.width,
-                geometry.height,
-            ),
+            bounds,
+            offset=offset_x,
+            vertical_offset=offset_y,
         )
         self._window.move(*position)
         self._window.present_with_time(self._gdk.CURRENT_TIME)
