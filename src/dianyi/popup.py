@@ -47,10 +47,10 @@ def logical_pointer(x: int, y: int, scale: int) -> tuple[int, int]:
 def physical_popup_offsets(
     monitor: Rectangle, width_mm: int, height_mm: int,
 ) -> tuple[int, int]:
-    """Return a 20 mm gap per axis, falling back to 96 DPI if size is unknown."""
+    """Return a 5 mm gap per axis, falling back to 96 DPI if size is unknown."""
     return (
-        max(1, round(20 * monitor.width / width_mm)) if width_mm > 0 else 76,
-        max(1, round(20 * monitor.height / height_mm)) if height_mm > 0 else 76,
+        max(1, round(5 * monitor.width / width_mm)) if width_mm > 0 else 19,
+        max(1, round(5 * monitor.height / height_mm)) if height_mm > 0 else 19,
     )
 
 
@@ -61,7 +61,7 @@ def place_popup(
     popup_height: int,
     monitor: Rectangle,
     *,
-    offset: int = 76,
+    offset: int = 19,
     vertical_offset: int | None = None,
     margin: int = 8,
 ) -> tuple[int, int]:
