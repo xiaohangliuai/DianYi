@@ -12,6 +12,7 @@ from dianyi.capture.atspi import AtspiSelectionWatcher
 from dianyi.capture.coordinator import CaptureCoordinator
 from dianyi.capture.gesture import DoubleClickDetector, PointerEvent
 from dianyi.capture.x11 import X11PointerListener
+from dianyi.capture.primary_word import PrimaryWordReader
 from dianyi.controls import PreferencesDialog, TrayController
 from dianyi.desktop_settings import load_input_settings
 from dianyi.dictionary.lookup import DictionaryUnavailableError, lookup_word
@@ -46,6 +47,7 @@ def run_capture_service() -> int:
     preferences = preferences_store.load()
     blocklist = frozenset(preferences.blocked_applications)
     popup = CapturePopup()
+    primary = PrimaryWordReader()
 
     def show_lookup(word: str, pointer_x: int, pointer_y: int) -> None:
         try:
@@ -84,6 +86,9 @@ def run_capture_service() -> int:
         schedule,
         on_dismiss=dismiss,
         blocklist=blocklist,
+        fallback=lambda gesture, callback: primary.request_word(
+            gesture, callback, blocklist=blocklist
+        ),
     )
 
     def record_selection(selection: SelectionContext) -> None:
@@ -97,7 +102,11 @@ def run_capture_service() -> int:
         GLib.idle_add(coordinator.handle_pointer_event, event)
 
     def queue_escape() -> None:
-        GLib.idle_add(dismiss)
+        def cancel() -> bool:
+            coordinator.clear()
+            dismiss()
+            return GLib.SOURCE_REMOVE
+        GLib.idle_add(cancel)
 
     def queue_runtime_error(failure: Exception) -> None:
         def report_and_quit() -> bool:
@@ -134,6 +143,7 @@ def run_capture_service() -> int:
         blocklist = frozenset(updated.blocked_applications)
         preferences_store.save(updated)
         coordinator.set_blocklist(blocklist)
+        popup.hide()
 
     tray = TrayController(
         paused=preferences.paused,
@@ -150,11 +160,16 @@ def run_capture_service() -> int:
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, request_shutdown)
 
     try:
+        try:
+            primary.start()
+        except Exception as failure:
+            print(f"X11 word fallback unavailable ({type(failure).__name__}).", file=sys.stderr)
         selection_watcher.start()
         pointer_listener.start()
         Gtk.main()
     finally:
         coordinator.clear()
+        primary.stop()
         tray.destroy()
         pointer_listener.stop()
         selection_watcher.stop()

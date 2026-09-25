@@ -42,6 +42,8 @@ class DoubleClick:
     completed_at_s: float
     x: int
     y: int
+    started_timestamp_ms: int | None = None
+    completed_timestamp_ms: int | None = None
 
 
 def _x11_elapsed_ms(earlier: int, later: int) -> int:
@@ -104,8 +106,9 @@ class DoubleClickDetector:
                 completed_at_s=current.release.monotonic_s,
                 x=current.release.x,
                 y=current.release.y,
+                started_timestamp_ms=previous.press.timestamp_ms,
+                completed_timestamp_ms=current.release.timestamp_ms,
             )
 
         self._previous_click = current
         return None
-

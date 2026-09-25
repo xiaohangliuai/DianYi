@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from collections.abc import Callable
 
 from dianyi.capture.freshness import FreshSelectionBuffer
 from dianyi.capture.gesture import (
     DoubleClick,
     DoubleClickDetector,
+    DoubleClick,
     PointerAction,
     PointerEvent,
 )
-from dianyi.selection import SelectionContext, validate_automatic_word
+from dianyi.selection import RejectionReason, SelectionContext, validate_automatic_word
 
 
 SettleScheduler = Callable[[int, Callable[[], None]], None]
@@ -32,6 +34,7 @@ class CaptureCoordinator:
         blocklist: frozenset[str] = frozenset(),
         settle_delay_ms: int = 80,
         clock: Callable[[], float] = time.monotonic,
+        fallback: Callable[[DoubleClick, Callable[[SelectionContext | None], None]], None] | None = None,
     ) -> None:
         if settle_delay_ms < 0:
             raise ValueError("settle_delay_ms cannot be negative")
@@ -44,6 +47,7 @@ class CaptureCoordinator:
         self._clock = clock
         self._selections = FreshSelectionBuffer()
         self._generation = 0
+        self._fallback = fallback
 
     def record_selection(self, selection: SelectionContext) -> None:
         """Record the most recent AT-SPI selection without persisting it."""
@@ -52,6 +56,7 @@ class CaptureCoordinator:
     def handle_pointer_event(self, event: PointerEvent) -> None:
         """Process one main-thread pointer event and schedule completed gestures."""
         if event.action is PointerAction.PRESS:
+            self._generation += 1
             self._on_dismiss()
 
         gesture = self._detector.feed(event)
@@ -70,12 +75,23 @@ class CaptureCoordinator:
         if generation != self._generation:
             return
         selection = self._selections.consume_for(gesture, self._clock())
-        if selection is None:
-            return
-        result = validate_automatic_word(selection, self._blocklist)
-        if result.word is None:
-            return
-        self._on_word(result.word.text, gesture.x, gesture.y)
+        if selection is not None:
+            if not validate_automatic_word(replace(selection, text="word"), self._blocklist).accepted:
+                return
+            result = validate_automatic_word(selection, self._blocklist)
+            if result.word is not None:
+                self._on_word(result.word.text, gesture.x, gesture.y)
+                return
+            if result.rejection is not RejectionReason.EMPTY:
+                return
+        if self._fallback is not None:
+            def received(context: SelectionContext | None) -> None:
+                if context is None or generation != self._generation:
+                    return
+                result = validate_automatic_word(context, self._blocklist)
+                if result.word is not None:
+                    self._on_word(result.word.text, gesture.x, gesture.y)
+            self._fallback(gesture, received)
 
     def clear(self) -> None:
         """Invalidate pending work and discard any selected text in memory."""

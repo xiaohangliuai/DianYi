@@ -20,7 +20,8 @@ shortcut are not part of this MVP.
 
 - Run one Python 3.12 background process using X11 input events.
 - Detect double-clicks using the desktop's configured click-time and movement thresholds.
-- Combine the click with a fresh AT-SPI text-selection event; never look up an older selection.
+- Combine the click with a fresh AT-SPI text-selection event, or a fresh X11 PRIMARY ownership event when accessibility text is unavailable; never look up an older selection.
+- For PRIMARY fallback, compare X11 server timestamps with the double-click, match the selection owner's process to the active window through XRes 1.2, and recheck ownership before displaying the result.
 - Automatically look up only a single English word.
 - Refuse empty selections, password fields, multiword selections, non-English text, and selections from applications in the user's blocklist.
 
@@ -63,5 +64,5 @@ shortcut are not part of this MVP.
 - The target is Ubuntu 24.04 with GNOME 46 running an X11 session.
 - Output is Simplified Chinese dictionary data.
 - The MVP is for personal use and is installed through scripts rather than a `.deb` package or extension store.
-- Images, scanned PDFs, games, remote desktops, canvas-only text, and applications that do not expose AT-SPI text remain unsupported.
+- Images, scanned PDFs, games, remote desktops, canvas-only text, and applications that expose neither AT-SPI text nor a verifiably fresh X11 PRIMARY selection remain unsupported.
 - Wayland is a separate follow-up milestone; the dictionary, preferences, and popup behavior remain reusable.

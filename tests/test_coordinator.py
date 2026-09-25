@@ -116,6 +116,47 @@ class CaptureCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(self.words, [])
 
+    def enable_fallback(self):
+        self.fallback_callbacks = []
+        self.coordinator._fallback = lambda gesture, callback: self.fallback_callbacks.append(callback)
+
+    def test_uses_fallback_when_accessibility_selection_is_missing(self):
+        self.enable_fallback()
+        self.double_click()
+        self.run_scheduled()
+        self.fallback_callbacks[0](SelectionContext("hello",1.16))
+        self.assertEqual(self.words, [("hello",10,20)])
+
+    def test_does_not_fallback_for_known_password_even_if_empty(self):
+        self.enable_fallback()
+        self.double_click()
+        self.coordinator.record_selection(SelectionContext("",1.16,is_password=True))
+        self.run_scheduled()
+        self.assertEqual(self.fallback_callbacks, [])
+
+    def test_does_not_fallback_for_accessible_phrase(self):
+        self.enable_fallback()
+        self.double_click()
+        self.coordinator.record_selection(SelectionContext("two words",1.16))
+        self.run_scheduled()
+        self.assertEqual(self.fallback_callbacks, [])
+
+    def test_new_click_cancels_pending_fallback(self):
+        self.enable_fallback()
+        self.double_click()
+        self.run_scheduled()
+        self.coordinator.handle_pointer_event(pointer(PointerAction.PRESS,1300))
+        self.fallback_callbacks[0](SelectionContext("hello",1.16))
+        self.assertEqual(self.words, [])
+
+    def test_pause_cancels_pending_fallback(self):
+        self.enable_fallback()
+        self.double_click()
+        self.run_scheduled()
+        self.coordinator.clear()
+        self.fallback_callbacks[0](SelectionContext("hello",1.16))
+        self.assertEqual(self.words, [])
+
 
 if __name__ == "__main__":
     unittest.main()
