@@ -45,7 +45,7 @@ def place_popup(
     popup_height: int,
     monitor: Rectangle,
     *,
-    offset: int = 14,
+    offset: int = 28,
     margin: int = 8,
 ) -> tuple[int, int]:
     """Place a popup near the pointer while keeping it inside one monitor."""

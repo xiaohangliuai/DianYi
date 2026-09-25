@@ -13,12 +13,12 @@ class PopupPlacementTests(unittest.TestCase):
     def test_places_popup_below_and_right_of_pointer(self) -> None:
         result = place_popup(400, 300, 200, 100, MONITOR)
 
-        self.assertEqual(result, (414, 314))
+        self.assertEqual(result, (428, 328))
 
     def test_flips_popup_at_bottom_right_edge(self) -> None:
         result = place_popup(1_090, 740, 200, 100, MONITOR)
 
-        self.assertEqual(result, (876, 626))
+        self.assertEqual(result, (862, 612))
 
     def test_clamps_oversized_popup_to_monitor_margin(self) -> None:
         result = place_popup(500, 300, 2_000, 1_000, MONITOR)
@@ -30,7 +30,7 @@ class PopupPlacementTests(unittest.TestCase):
 
         result = place_popup(-20, 500, 300, 100, monitor)
 
-        self.assertEqual(result, (-334, 514))
+        self.assertEqual(result, (-348, 528))
 
 
 class DictionaryPopupFormattingTests(unittest.TestCase):
