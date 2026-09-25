@@ -7,6 +7,57 @@ from dataclasses import dataclass
 from dianyi.dictionary.lookup import DictionaryEntry
 
 
+POPUP_CSS = b"""
+#dianyi-capture-popup {
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+}
+#dianyi-capture-popup .dictionary-card {
+    background-color: #f8faff;
+    background-image: none;
+    border: 1px solid #7e9dcb;
+    border-radius: 13px;
+    padding: 18px 20px;
+    box-shadow: 0 3px 7px rgba(35, 51, 75, 0.16);
+}
+#dianyi-capture-popup label {
+    color: #23334b;
+    font-family: sans-serif;
+    text-shadow: none;
+}
+#dianyi-capture-popup .dictionary-title {
+    font-size: 22px;
+    font-weight: 700;
+}
+#dianyi-capture-popup .dictionary-details {
+    color: #5e6f88;
+    font-size: 15px;
+    font-weight: 400;
+}
+#dianyi-capture-popup .dictionary-meanings {
+    font-size: 19px;
+    font-weight: 400;
+}
+#dianyi-capture-popup scrolledwindow,
+#dianyi-capture-popup viewport {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+#dianyi-capture-popup scrollbar {
+    background-color: transparent;
+}
+#dianyi-capture-popup scrollbar slider {
+    background-color: #a6b9d7;
+    border-radius: 4px;
+    min-width: 5px;
+    min-height: 24px;
+    border: none;
+}
+"""
+
+
 @dataclass(frozen=True, slots=True)
 class Rectangle:
     x: int
@@ -34,7 +85,7 @@ def format_dictionary_entry(entry: DictionaryEntry) -> DictionaryPopupContent:
     return DictionaryPopupContent(
         title=entry.selected_text,
         details="  ".join(details),
-        meanings="\n".join(entry.meanings),
+        meanings="\n".join(entry.meanings).replace(r"\n", "\n"),
     )
 
 
@@ -107,40 +158,56 @@ class CapturePopup:
         self._window.set_skip_pager_hint(True)
         self._window.set_skip_taskbar_hint(True)
         self._window.set_type_hint(Gdk.WindowTypeHint.NOTIFICATION)
+        screen = self._window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual is not None:
+            self._window.set_visual(visual)
+        self._css = Gtk.CssProvider()
+        self._css.load_from_data(POPUP_CSS)
+        Gtk.StyleContext.add_provider_for_screen(
+            screen, self._css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
-        frame = Gtk.Frame()
-        frame.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        content.set_margin_start(14)
-        content.set_margin_end(14)
-        content.set_margin_top(10)
-        content.set_margin_bottom(10)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        content.get_style_context().add_class("dictionary-card")
+        content.set_margin_start(8)
+        content.set_margin_end(8)
+        content.set_margin_top(8)
+        content.set_margin_bottom(8)
+        content.set_size_request(400, -1)
 
         self._title = Gtk.Label(xalign=0)
         self._title.set_line_wrap(True)
         self._title.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-        self._title.set_max_width_chars(46)
-        self._title.get_style_context().add_class("title")
+        self._title.set_max_width_chars(28)
+        self._title.get_style_context().add_class("dictionary-title")
         self._details = Gtk.Label(xalign=0)
-        self._details.get_style_context().add_class("dim-label")
+        self._details.set_line_wrap(True)
+        self._details.set_max_width_chars(40)
+        self._details.set_no_show_all(True)
+        self._details.get_style_context().add_class("dictionary-details")
         self._meanings = Gtk.Label(xalign=0)
         self._meanings.set_line_wrap(True)
         self._meanings.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-        self._meanings.set_max_width_chars(46)
+        self._meanings.set_max_width_chars(34)
         self._meanings.set_selectable(False)
+        self._meanings.set_margin_top(10)
+        self._meanings.get_style_context().add_class("dictionary-meanings")
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_shadow_type(Gtk.ShadowType.NONE)
-        scroller.set_min_content_width(260)
+        scroller.set_min_content_width(358)
+        scroller.set_max_content_width(420)
+        scroller.set_propagate_natural_width(True)
         scroller.set_max_content_height(320)
         scroller.set_propagate_natural_height(True)
         scroller.add(self._meanings)
         content.pack_start(self._title, False, False, 0)
         content.pack_start(self._details, False, False, 0)
         content.pack_start(scroller, True, True, 0)
-        frame.add(content)
-        self._window.add(frame)
+        self._scroller = scroller
+        self._window.add(content)
 
     def show_entry(
         self,
@@ -177,6 +244,8 @@ class CapturePopup:
         self._details.set_text(content.details)
         self._details.set_visible(bool(content.details))
         self._meanings.set_text(content.meanings)
+        self._scroller.get_vadjustment().set_value(0)
+        self._window.resize(1, 1)
         self._window.show_all()
         self._details.set_visible(bool(content.details))
         _minimum, natural = self._window.get_preferred_size()
@@ -215,4 +284,7 @@ class CapturePopup:
     def destroy(self) -> None:
         """Destroy the popup and release its GTK resources."""
         self.hide()
+        self._gtk.StyleContext.remove_provider_for_screen(
+            self._window.get_screen(), self._css
+        )
         self._window.destroy()

@@ -10,8 +10,9 @@ compatible application—without switching to a dictionary window.
 
 ![Animated DianYi demo: double-click curious, see its Chinese meanings, then click away to close the popup.](docs/assets/double-click-demo.gif)
 
-*Illustrated interaction using the real ECDICT entry for “curious.” The actual
-popup follows your desktop theme. [View a still image](docs/assets/double-click-preview.png).*
+*Illustrated interaction using the real ECDICT entry for “curious.” The popup
+uses this rounded blue card style; font rendering and display scaling may vary.
+[View a still image](docs/assets/double-click-preview.png).*
 
 ## Features
 

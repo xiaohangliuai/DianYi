@@ -60,6 +60,13 @@ class PopupPlacementTests(unittest.TestCase):
 
 
 class DictionaryPopupFormattingTests(unittest.TestCase):
+    def test_displays_ecdict_escaped_newlines_as_separate_meanings(self) -> None:
+        entry = DictionaryEntry(
+            selected_text="apple", headword="apple", phonetic="", parts_of_speech=(),
+            meanings=(r"n. 苹果, 家伙\n[医] 苹果",),
+        )
+        self.assertEqual(format_dictionary_entry(entry).meanings, "n. 苹果, 家伙\n[医] 苹果")
+
     def test_formats_full_exact_entry(self) -> None:
         entry = DictionaryEntry(
             selected_text="run",

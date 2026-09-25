@@ -84,7 +84,7 @@ def render(t):
         d.ellipse((x,569,x+27,596),fill="#2160d5" if active else "#dce4ee")
         text(d,(x+8,576),str(i+1),13,fill="white" if active else "#61738c",bold=True)
         text(d,(x+38,575),label,16,fill="#174aab" if active else "#61738c",bold=active)
-    text(d,(48,616),"Illustrated demo · ECDICT meanings · Actual popup follows your desktop theme",12,fill="#718197")
+    text(d,(48,616),"Illustrated demo · ECDICT meanings · Layout varies with display scaling",12,fill="#718197")
     return image
 
 
