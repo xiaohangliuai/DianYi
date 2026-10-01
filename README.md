@@ -18,6 +18,8 @@ uses this rounded blue card style; font rendering and display scaling may vary.
 
 - **Offline English → Simplified Chinese:** local ECDICT definitions, phonetic
   spelling, and parts of speech when available.
+- **Word pronunciation:** click the speaker beside a result to hear its English
+  pronunciation through the local eSpeak NG voice.
 - **Double-click to look up:** the popup appears about 0.5 cm right and below
   the click, adjusted for display scaling and screen edges.
 - **Inflection lookup:** resolves dictionary-listed forms to their headword
@@ -75,7 +77,8 @@ access; DianYi itself installs into your user account.
 
 ```bash
 sudo apt install git python3-gi python3-cairo python3-gi-cairo \
-  gir1.2-gtk-3.0 gir1.2-atspi-2.0 python3-xlib
+  gir1.2-gtk-3.0 gir1.2-atspi-2.0 python3-xlib \
+  espeak-ng
 ```
 
 Then clone and install:
@@ -105,7 +108,8 @@ Leave the launching terminal open. DianYi will also start automatically after
 your next GNOME login; avoid launching another copy if it is already running.
 
 1. Double-click a single English word in selectable text.
-2. Read its Chinese dictionary entry in the popup.
+2. Read its Chinese dictionary entry in the popup. Click the speaker button to
+   hear the English word; the popup stays open.
 3. Click elsewhere or press **Escape** to dismiss it.
 
 Click the tray icon to open the menu. A checked **Pause word lookup** item means
@@ -124,6 +128,8 @@ to stop the service.
 - Check system Python dependencies with `~/.local/bin/dianyi --check`. This checks
   imports; it does not prove that a particular app exposes selections.
 - If the dictionary is missing, run `~/.local/bin/dianyi --install-dictionary`.
+- If the speaker is disabled, install `espeak-ng`, then restart DianYi.
+  An existing Speech Dispatcher setup with its eSpeak NG backend also works.
 
 ## Update or uninstall
 

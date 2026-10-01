@@ -99,7 +99,12 @@ def run_capture_service() -> int:
     def queue_pointer(event: PointerEvent) -> None:
         if preferences.paused or not preferences.automatic_word_lookup:
             return
-        GLib.idle_add(coordinator.handle_pointer_event, event)
+        def dispatch() -> bool:
+            if not popup.contains_pointer(event.x, event.y):
+                coordinator.handle_pointer_event(event)
+            return GLib.SOURCE_REMOVE
+
+        GLib.idle_add(dispatch)
 
     def queue_escape() -> None:
         def cancel() -> bool:

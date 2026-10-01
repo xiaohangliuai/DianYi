@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from dianyi.dictionary.lookup import DictionaryEntry
+from dianyi.pronunciation import pronunciation_available, speak_word
 
 
 POPUP_CSS = b"""
@@ -29,6 +30,19 @@ POPUP_CSS = b"""
 #dianyi-capture-popup .dictionary-title {
     font-size: 22px;
     font-weight: 700;
+}
+#dianyi-capture-popup .dictionary-pronounce {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    box-shadow: none;
+    color: #496a9c;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 2px;
+}
+#dianyi-capture-popup .dictionary-pronounce:hover {
+    background-color: #e7effc;
 }
 #dianyi-capture-popup .dictionary-details {
     color: #5e6f88;
@@ -93,6 +107,14 @@ def logical_pointer(x: int, y: int, scale: int) -> tuple[int, int]:
     """Convert X11 device coordinates to GTK logical coordinates."""
     scale = max(1, scale)
     return x // scale, y // scale
+
+
+def pointer_in_popup(
+    pointer_x: int, pointer_y: int, popup: Rectangle, scale: int,
+) -> bool:
+    """Check an X11 device pointer against the GTK logical popup bounds."""
+    x, y = logical_pointer(pointer_x, pointer_y, scale)
+    return popup.x <= x < popup.x + popup.width and popup.y <= y < popup.y + popup.height
 
 
 def physical_popup_offsets(
@@ -176,11 +198,24 @@ class CapturePopup:
         content.set_margin_bottom(8)
         content.set_size_request(400, -1)
 
+        title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._title = Gtk.Label(xalign=0)
         self._title.set_line_wrap(True)
         self._title.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         self._title.set_max_width_chars(28)
+        self._title.set_hexpand(True)
         self._title.get_style_context().add_class("dictionary-title")
+        self._pronounce = Gtk.Button()
+        self._pronounce.set_image(Gtk.Image.new_from_icon_name("audio-volume-high-symbolic", Gtk.IconSize.BUTTON))
+        self._pronounce.set_relief(Gtk.ReliefStyle.NONE)
+        self._pronounce.set_tooltip_text("Pronounce word")
+        self._pronounce.get_style_context().add_class("dictionary-pronounce")
+        self._pronounce.set_no_show_all(True)
+        self._pronounce.set_sensitive(pronunciation_available())
+        self._pronounce.connect("clicked", self._on_pronounce_clicked)
+        self._spoken_word = ""
+        title_row.pack_start(self._title, True, True, 0)
+        title_row.pack_end(self._pronounce, False, False, 0)
         self._details = Gtk.Label(xalign=0)
         self._details.set_line_wrap(True)
         self._details.set_max_width_chars(40)
@@ -203,7 +238,7 @@ class CapturePopup:
         scroller.set_max_content_height(320)
         scroller.set_propagate_natural_height(True)
         scroller.add(self._meanings)
-        content.pack_start(self._title, False, False, 0)
+        content.pack_start(title_row, False, False, 0)
         content.pack_start(self._details, False, False, 0)
         content.pack_start(scroller, True, True, 0)
         self._scroller = scroller
@@ -217,6 +252,10 @@ class CapturePopup:
     ) -> None:
         """Show a structured dictionary result beside the pointer."""
         content = format_dictionary_entry(entry)
+        self._spoken_word = entry.selected_text
+        self._pronounce.set_sensitive(pronunciation_available())
+        self._pronounce.show_all()
+        self._pronounce.show()
         self._show_content(content, pointer_x, pointer_y)
 
     def show_status(
@@ -227,6 +266,8 @@ class CapturePopup:
         pointer_y: int,
     ) -> None:
         """Show a non-sensitive setup or lookup status beside the pointer."""
+        self._spoken_word = ""
+        self._pronounce.hide()
         self._show_content(
             DictionaryPopupContent(title=title, details="", meanings=message),
             pointer_x,
@@ -274,12 +315,30 @@ class CapturePopup:
         self._window.move(*position)
         self._window.present_with_time(self._gdk.CURRENT_TIME)
 
+    def _on_pronounce_clicked(self, _button: object) -> None:
+        if self._spoken_word:
+            speak_word(self._spoken_word)
+
+    def contains_pointer(self, pointer_x: int, pointer_y: int) -> bool:
+        """Keep clicks inside the visible popup from dismissing it."""
+        if not self._window.get_visible():
+            return False
+        x, y = self._window.get_position()
+        width, height = self._window.get_size()
+        return pointer_in_popup(
+            pointer_x, pointer_y,
+            Rectangle(x, y, width, height),
+            self._window.get_scale_factor(),
+        )
+
     def hide(self) -> None:
         """Hide the popup and its selected-text content."""
         self._window.hide()
         self._title.set_text("")
         self._details.set_text("")
         self._meanings.set_text("")
+        self._spoken_word = ""
+        self._pronounce.hide()
 
     def destroy(self) -> None:
         """Destroy the popup and release its GTK resources."""

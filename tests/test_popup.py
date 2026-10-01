@@ -5,7 +5,7 @@ import unittest
 from dianyi.dictionary.lookup import DictionaryEntry
 from dianyi.popup import (
     Rectangle, format_dictionary_entry, place_popup,
-    logical_pointer, physical_popup_offsets,
+    logical_pointer, physical_popup_offsets, pointer_in_popup,
 )
 
 
@@ -57,6 +57,12 @@ class PopupPlacementTests(unittest.TestCase):
             place_popup(300, 300, 100, 100, monitor, offset=dx, vertical_offset=dy),
             (310, 320),
         )
+
+    def test_hit_testing_uses_scaled_pointer_coordinates(self) -> None:
+        popup = Rectangle(100, 200, 400, 150)
+        self.assertTrue(pointer_in_popup(900, 500, popup, 2))
+        self.assertFalse(pointer_in_popup(1_000, 500, popup, 2))
+        self.assertFalse(pointer_in_popup(900, 399, popup, 2))
 
 
 class DictionaryPopupFormattingTests(unittest.TestCase):
