@@ -61,6 +61,11 @@ def render(t):
         d.rounded_rectangle((px,py,px+544,py+167),13,fill="#f8faff",outline="#7e9dcb",width=2)
         text(d,(px+22,py+18),"curious",28,bold=True)
         text(d,(px+22,py+58),"/'kjuәriәs/",19,fill="#5e6f88")
+        sx = round(px+22+d.textlength("/'kjuәriәs/",font=font(19))+15)
+        sy = py+67
+        d.polygon(((sx,sy-3),(sx+4,sy-3),(sx+9,sy-8),(sx+9,sy+8),(sx+4,sy+3),(sx,sy+3)),fill="#496a9c")
+        d.arc((sx+6,sy-7,sx+17,sy+7),-60,60,fill="#496a9c",width=2)
+        d.arc((sx+5,sy-12,sx+24,sy+12),-60,60,fill="#496a9c",width=2)
         text(d,(px+22,py+104),"a. 好奇的, 求知的, 古怪的",26,chinese=True)
 
     if t < 1.05:

@@ -85,6 +85,7 @@ class DictionaryPopupContent:
     title: str
     details: str
     meanings: str
+    phonetic: str = ""
 
 
 def format_dictionary_entry(entry: DictionaryEntry) -> DictionaryPopupContent:
@@ -92,14 +93,13 @@ def format_dictionary_entry(entry: DictionaryEntry) -> DictionaryPopupContent:
     details: list[str] = []
     if entry.normalized:
         details.append(f"\u2192 {entry.headword}")
-    if entry.phonetic:
-        details.append(f"/{entry.phonetic.strip('/[]')}/")
     if entry.parts_of_speech:
         details.append(" \u00b7 ".join(entry.parts_of_speech))
     return DictionaryPopupContent(
         title=entry.selected_text,
         details="  ".join(details),
         meanings="\n".join(entry.meanings).replace(r"\n", "\n"),
+        phonetic=f"/{entry.phonetic.strip('/[]')}/" if entry.phonetic else "",
     )
 
 
@@ -198,7 +198,6 @@ class CapturePopup:
         content.set_margin_bottom(8)
         content.set_size_request(400, -1)
 
-        title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._title = Gtk.Label(xalign=0)
         self._title.set_line_wrap(True)
         self._title.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
@@ -215,8 +214,16 @@ class CapturePopup:
         self._pronounce.connect("clicked", self._on_pronounce_clicked)
         self._spoken_word = ""
         self._speech_generation = 0
-        title_row.pack_start(self._title, True, True, 0)
-        title_row.pack_end(self._pronounce, False, False, 0)
+        self._phonetic = Gtk.Label(xalign=0)
+        self._phonetic.set_line_wrap(True)
+        self._phonetic.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        self._phonetic.set_max_width_chars(34)
+        self._phonetic.set_no_show_all(True)
+        self._phonetic.get_style_context().add_class("dictionary-details")
+        self._pronunciation_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._pronunciation_row.set_no_show_all(True)
+        self._pronunciation_row.pack_start(self._phonetic, False, False, 0)
+        self._pronunciation_row.pack_start(self._pronounce, False, False, 0)
         self._details = Gtk.Label(xalign=0)
         self._details.set_line_wrap(True)
         self._details.set_max_width_chars(40)
@@ -239,7 +246,8 @@ class CapturePopup:
         scroller.set_max_content_height(320)
         scroller.set_propagate_natural_height(True)
         scroller.add(self._meanings)
-        content.pack_start(title_row, False, False, 0)
+        content.pack_start(self._title, False, False, 0)
+        content.pack_start(self._pronunciation_row, False, False, 0)
         content.pack_start(self._details, False, False, 0)
         content.pack_start(scroller, True, True, 0)
         self._scroller = scroller
@@ -288,6 +296,9 @@ class CapturePopup:
     ) -> None:
         """Populate, position, and reveal the shared popup window."""
         self._title.set_text(content.title)
+        self._phonetic.set_text(content.phonetic)
+        self._phonetic.set_visible(bool(content.phonetic))
+        self._pronunciation_row.set_visible(bool(content.phonetic) or bool(self._spoken_word))
         self._details.set_text(content.details)
         self._details.set_visible(bool(content.details))
         self._meanings.set_text(content.meanings)
@@ -356,6 +367,8 @@ class CapturePopup:
         """Hide the popup and its selected-text content."""
         self._window.hide()
         self._title.set_text("")
+        self._phonetic.set_text("")
+        self._pronunciation_row.hide()
         self._details.set_text("")
         self._meanings.set_text("")
         self._spoken_word = ""

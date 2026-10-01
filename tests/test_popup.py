@@ -85,7 +85,8 @@ class DictionaryPopupFormattingTests(unittest.TestCase):
         content = format_dictionary_entry(entry)
 
         self.assertEqual(content.title, "run")
-        self.assertEqual(content.details, "/r\u028cn/  v \u00b7 n")
+        self.assertEqual(content.phonetic, "/r\u028cn/")
+        self.assertEqual(content.details, "v \u00b7 n")
         self.assertEqual(content.meanings, "vi. \u8dd1\nvt. \u7ba1\u7406")
 
     def test_shows_normalized_headword(self) -> None:

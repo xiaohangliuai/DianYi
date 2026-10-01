@@ -18,7 +18,7 @@ uses this rounded blue card style; font rendering and display scaling may vary.
 
 - **Offline English → Simplified Chinese:** local ECDICT definitions, phonetic
   spelling, and parts of speech when available.
-- **Word pronunciation:** click the speaker beside a result to hear its English
+- **Word pronunciation:** click the speaker beside the phonetic transcription to hear its English
   pronunciation through the offline **Piper Lessac medium** US English voice.
 - **Double-click to look up:** the popup appears about 0.5 cm right and below
   the click, adjusted for display scaling and screen edges.
@@ -115,7 +115,7 @@ Leave the launching terminal open. DianYi will also start automatically after
 your next GNOME login; avoid launching another copy if it is already running.
 
 1. Double-click a single English word in selectable text.
-2. Read its Chinese dictionary entry in the popup. Click the speaker button to
+2. Read its Chinese dictionary entry in the popup. Click the speaker beside the phonetic transcription to
    hear the English word; the popup stays open.
 3. Click elsewhere or press **Escape** to dismiss it.
 
