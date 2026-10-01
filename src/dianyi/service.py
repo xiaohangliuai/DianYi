@@ -18,6 +18,7 @@ from dianyi.desktop_settings import load_input_settings
 from dianyi.dictionary.lookup import DictionaryUnavailableError, lookup_word
 from dianyi.popup import CapturePopup
 from dianyi.preferences import PreferencesStore
+from dianyi.pronunciation import close_pronunciation
 from dianyi.selection import SelectionContext
 
 
@@ -173,6 +174,7 @@ def run_capture_service() -> int:
         pointer_listener.start()
         Gtk.main()
     finally:
+        close_pronunciation()
         coordinator.clear()
         primary.stop()
         tray.destroy()

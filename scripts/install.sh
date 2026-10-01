@@ -51,6 +51,7 @@ fi
 
 if [[ ${DIANYI_SKIP_DOWNLOADS:-0} != 1 ]]; then
     "$launcher_path" --install-dictionary
+    "$launcher_path" --install-voice
 fi
 
 escaped_launcher=${launcher_path//\\/\\\\}

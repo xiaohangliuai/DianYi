@@ -214,6 +214,7 @@ class CapturePopup:
         self._pronounce.set_sensitive(pronunciation_available())
         self._pronounce.connect("clicked", self._on_pronounce_clicked)
         self._spoken_word = ""
+        self._speech_generation = 0
         title_row.pack_start(self._title, True, True, 0)
         title_row.pack_end(self._pronounce, False, False, 0)
         self._details = Gtk.Label(xalign=0)
@@ -253,7 +254,12 @@ class CapturePopup:
         """Show a structured dictionary result beside the pointer."""
         content = format_dictionary_entry(entry)
         self._spoken_word = entry.selected_text
-        self._pronounce.set_sensitive(pronunciation_available())
+        self._speech_generation += 1
+        available = pronunciation_available()
+        self._pronounce.set_sensitive(available)
+        self._pronounce.set_tooltip_text(
+            "Pronounce word (Piper Lessac)" if available else "Pronunciation voice is not installed."
+        )
         self._pronounce.show_all()
         self._pronounce.show()
         self._show_content(content, pointer_x, pointer_y)
@@ -316,8 +322,23 @@ class CapturePopup:
         self._window.present_with_time(self._gdk.CURRENT_TIME)
 
     def _on_pronounce_clicked(self, _button: object) -> None:
-        if self._spoken_word:
-            speak_word(self._spoken_word)
+        from gi.repository import GLib
+
+        generation = self._speech_generation
+
+        def finished(success: bool) -> bool:
+            if generation == self._speech_generation and self._spoken_word:
+                self._pronounce.set_sensitive(True)
+                self._pronounce.set_tooltip_text(
+                    "Pronounce word (Piper Lessac)" if success else "Playback failed. Click to retry."
+                )
+            return GLib.SOURCE_REMOVE
+
+        if self._spoken_word and speak_word(
+            self._spoken_word, lambda success: GLib.idle_add(finished, success)
+        ):
+            self._pronounce.set_sensitive(False)
+            self._pronounce.set_tooltip_text("Speaking…")
 
     def contains_pointer(self, pointer_x: int, pointer_y: int) -> bool:
         """Keep clicks inside the visible popup from dismissing it."""
@@ -338,6 +359,7 @@ class CapturePopup:
         self._details.set_text("")
         self._meanings.set_text("")
         self._spoken_word = ""
+        self._speech_generation += 1
         self._pronounce.hide()
 
     def destroy(self) -> None:

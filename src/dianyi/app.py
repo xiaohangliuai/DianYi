@@ -42,6 +42,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="download, verify, and install the pinned ECDICT release",
     )
+    parser.add_argument(
+        "--install-voice", action="store_true",
+        help="install the offline Piper Lessac pronunciation voice",
+    )
     return parser
 
 
@@ -59,6 +63,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         from dianyi.service import run_capture_service
 
         return run_capture_service()
+    if args.install_voice:
+        from dianyi.voice_install import install_voice
+
+        print(f"Installed Piper Lessac voice at {install_voice()}")
+        return 0
     if args.install_dictionary:
         from dianyi.dictionary.install import install_dictionary
 
