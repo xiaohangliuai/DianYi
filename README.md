@@ -30,9 +30,10 @@ uses this rounded blue card style; font rendering and display scaling may vary.
 - **Local operation:** no account, API key, selected-text history, or sentence model.
 
 This MVP looks up **one English word at a time**. It does not translate sentences
-or recognize text inside images and scanned PDFs. Chrome, the ChatGPT desktop
-app, and OnlyOffice have been confirmed working on the development machine;
-other applications depend on how they expose selected text.
+or recognize text inside images and scanned PDFs. Chrome and the ChatGPT desktop
+app have been confirmed working on the development machine. OnlyOffice and
+terminal selection currently need compatibility work; see [TODO.md](TODO.md).
+Other applications depend on how they expose selected text.
 
 ## Small dictionary, small footprint
 
